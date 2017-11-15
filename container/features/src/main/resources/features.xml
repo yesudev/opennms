@@ -1155,4 +1155,54 @@
         <bundle start-level="100">mvn:org.opennms.features.vaadin-components/bundle-refresher/${project.version}</bundle>
     </feature>
 
+    <feature name="geronimo-jms-api" description="Apache Geronimo :: JMS :: API" version="${geronimoVersion}">
+        <bundle dependency="true">mvn:org.apache.geronimo.specs/geronimo-annotation_1.0_spec/${geronimoVersion}</bundle>
+        <bundle dependency="true">mvn:org.apache.geronimo.specs/geronimo-jta_1.1_spec/${geronimoVersion}</bundle>
+        <bundle dependency="true">mvn:org.apache.geronimo.specs/geronimo-jms_1.1_spec/${geronimoVersion}</bundle>
+    </feature>
+
+    <feature name="stooge-core" description="OpenNMS :: Stooge :: Core" version="${project.version}">
+        <bundle>mvn:org.opennms.features.stooge/api/${project.version}</bundle>
+        <bundle>mvn:org.opennms.features.stooge/bootstrap/${project.version}</bundle>
+    </feature>
+
+    <feature name="stooge-scv" description="OpenNMS :: Stooge :: SCV" version="${project.version}">
+        <feature>commons-codec</feature>
+        <feature version="${guavaVersion}">guava</feature>
+
+        <bundle>mvn:org.opennms.features.scv/org.opennms.features.scv.api/${project.version}</bundle>
+        <bundle>mvn:org.opennms.features.scv/org.opennms.features.scv.jceks-impl/${project.version}</bundle>
+    </feature>
+
+    <feature name="stooge-jms" description="OpenNMS :: Stooge :: JMS" version="${project.version}">
+        <feature>stooge-scv</feature>
+        <!-- Needed by activemq-camel -->
+        <bundle>mvn:javax.annotation/javax.annotation-api/1.2</bundle>
+        <feature>activemq-camel</feature>
+        <bundle>mvn:org.opennms.features.minion/jms/${project.version}</bundle>
+    </feature>
+
+    <feature name="stooge-sink" description="OpenNMS :: Stooge :: Sink" version="${project.version}">
+        <feature>stooge-jms</feature>
+        <feature>opennms-core</feature>
+        <feature>opennms-core-ipc-sink-camel</feature>
+    </feature>
+
+    <feature name="stooge-telemetry" description="OpenNMS :: Stooge :: Telemetry" version="${project.version}">
+        <feature>stooge-sink</feature>
+        <bundle>mvn:com.google.protobuf/protobuf-java/${protobufVersion}</bundle>
+        <bundle>mvn:org.opennms.features.telemetry.config/org.opennms.features.telemetry.config.api/${project.version}</bundle>
+        <bundle>mvn:org.opennms.features.telemetry.adapters/org.opennms.features.telemetry.adapters.api/${project.version}</bundle>
+        <bundle>mvn:org.opennms.features.telemetry.listeners/org.opennms.features.telemetry.listeners.api/${project.version}</bundle>
+        <bundle>mvn:org.opennms.features.telemetry/org.opennms.features.telemetry.common/${project.version}</bundle>
+        <bundle>mvn:org.opennms.features.telemetry.config/org.opennms.features.telemetry.config.api/${project.version}</bundle>
+        <bundle>mvn:org.opennms.features.telemetry.config/org.opennms.features.telemetry.config.jaxb/${project.version}</bundle>
+    </feature>
+
+    <feature name="stooge-test" description="OpenNMS :: Stooge :: Test Case" version="${project.version}">
+        <feature>stooge-core</feature>
+        <feature>stooge-telemetry</feature>
+        <bundle>mvn:org.opennms.features.stooge/test/${project.version}</bundle>
+    </feature>
+
 </features>

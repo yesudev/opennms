@@ -157,5 +157,6 @@
     <module>ifttt</module>
 
     <module>jest</module>
+    <module>stooge</module>
   </modules>
 </project>

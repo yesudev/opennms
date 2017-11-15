@@ -16,16 +16,6 @@
 
   <context:annotation-config />
 
-  <bean id="identity" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-    <property name="targetObject" ref="distPollerDao"/>
-    <property name="targetMethod" value="whoami"/>
-  </bean>
-
-  <bean id="location" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-    <property name="targetObject" ref="identity"/>
-    <property name="targetMethod" value="getLocation"/>
-  </bean>
-
   <bean id="camelMessageConsumerManager" class="org.opennms.core.ipc.sink.camel.CamelMessageConsumerManager" >
     <constructor-arg ref="sinkServer"/>
   </bean>

@@ -20,10 +20,6 @@
       </cm:default-properties>
     </cm:property-placeholder>
 
-    <!-- Provided by minion-core -->
-    <reference id="minionIdentity" interface="org.opennms.minion.core.api.MinionIdentity" />
-
-    <!-- Provided by minion-core -->
     <reference id="queuingservice" interface="org.apache.camel.Component" filter="(alias=opennms.broker)" />
 
     <bean id="camelRemoteMessageDispatcherFactory" class="org.opennms.core.ipc.sink.camel.CamelRemoteMessageDispatcherFactory"
@@ -45,4 +41,17 @@
       </route>
     </camelContext>
 
+    <bean id="camelMessageConsumerManager" class="org.opennms.core.ipc.sink.camel.CamelMessageConsumerManager" >
+        <argument ref="sinkServer"/>
+    </bean>
+    <service ref="camelMessageConsumerManager" interface="org.opennms.core.ipc.sink.api.MessageConsumerManager"/>
+
+    <camelContext id="sinkServer" xmlns="http://camel.apache.org/schema/blueprint">
+        <!-- Exchanges contain credentials i.e. SNMP community details, so avoid logging them -->
+        <properties>
+            <property key="CamelLogDebugBodyMaxChars" value="{{sys:org.opennms.ipc.camel.body.debug:-1}}"/>
+        </properties>
+
+        <!-- The routes are managed by the CamelMessageConsumerManager -->
+    </camelContext>
 </blueprint>
