@@ -1162,7 +1162,11 @@
     </feature>
 
     <feature name="stooge-core" description="OpenNMS :: Stooge :: Core" version="${project.version}">
-        <bundle>mvn:org.opennms.features.stooge/api/${project.version}</bundle>
+        <feature>gemini-blueprint</feature>
+        <feature dependency="true">opennms-core</feature>
+        <feature dependency="true">opennms-core-db</feature>
+        <feature dependency="true">opennms-model</feature>
+        <feature dependency="true">hibernate-validator41</feature>
         <bundle>mvn:org.opennms.features.stooge/bootstrap/${project.version}</bundle>
     </feature>
 

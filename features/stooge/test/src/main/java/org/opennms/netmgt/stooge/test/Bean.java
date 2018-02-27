@@ -28,21 +28,21 @@
 
 package org.opennms.netmgt.stooge.test;
 
+import java.util.List;
+
 import org.opennms.core.ipc.sink.api.MessageConsumer;
 import org.opennms.core.ipc.sink.api.MessageConsumerManager;
 import org.opennms.core.ipc.sink.api.SinkModule;
 import org.opennms.netmgt.dao.api.DistPollerDao;
 import org.opennms.netmgt.dao.api.NodeDao;
 import org.opennms.netmgt.model.OnmsNode;
-import org.opennms.netmgt.stooge.api.TransactionOperations;
 import org.opennms.netmgt.telemetry.config.model.Protocol;
 import org.opennms.netmgt.telemetry.ipc.TelemetryProtos;
 import org.opennms.netmgt.telemetry.ipc.TelemetrySinkModule;
 import org.opennms.netmgt.telemetry.listeners.api.TelemetryMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
+import org.springframework.transaction.support.TransactionOperations;
 
 public class Bean implements MessageConsumer<TelemetryMessage, TelemetryProtos.TelemetryMessageLog> {
     private static final Logger LOG = LoggerFactory.getLogger(Bean.class);
@@ -55,7 +55,7 @@ public class Bean implements MessageConsumer<TelemetryMessage, TelemetryProtos.T
 
     public void init() throws Exception {
         LOG.info("init");
-        transactionOperations.doInTransactionWithoutResult(() -> {
+        transactionOperations.execute((status) -> {
             final List<OnmsNode> nodes = nodeDao.findAll();
             if (nodes.isEmpty()) {
                 LOG.warn("No nodes found.");
@@ -63,6 +63,7 @@ public class Bean implements MessageConsumer<TelemetryMessage, TelemetryProtos.T
             for (OnmsNode node : nodes) {
                 LOG.info("Found node: {}", node);
             }
+            return null;
         });
 
         Protocol protocol = new Protocol();

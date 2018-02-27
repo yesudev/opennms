@@ -23,137 +23,38 @@
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
                         <Bundle-Version>${project.version}</Bundle-Version>
                         <Bundle-Activator>org.opennms.netmgt.stooge.bootstrap.Activator</Bundle-Activator>
-                        <Export-Package>
-                            org.opennms.core.criteria,
-                            org.opennms.core.criteria.restrictions,
-                            org.opennms.netmgt.dao.api,
-                            org.opennms.netmgt.model,
-                        </Export-Package>
+                        <X-Spring-Context>META-INF/opennms/applicationContext-osgi.xml</X-Spring-Context>
                         <Import-Package>
-                            javax.naming,
-                            javax.naming.event,
-                            javax.naming.spi,
-                            javax.net,
-                            javax.management,
-                            javax.sql,
-                            javax.xml.bind,
-                            javax.xml.bind.annotation,
-                            javax.xml.bind.annotation.adapters,
-                            javax.xml.datatype,
-                            javax.xml.namespace,
-                            javax.xml.parsers,
-                            javax.xml.stream,
-                            javax.xml.transform,
-                            javax.xml.transform.sax,
-                            javax.xml.validation,
-                            javax.xml.xpath,
-                            org.opennms.netmgt.stooge.api,
-                            org.osgi.framework,
-                            org.osgi.service.packageadmin,
-                            org.slf4j,
-                            <!--
-                            org.springframework.aop.framework,
-                            org.springframework.beans,
-                            org.springframework.beans.factory,
-                            org.springframework.beans.factory.config,
-                            org.springframework.beans.factory.support,
-                            org.springframework.beans.factory.xml,
-                            org.springframework.context,
-                            org.springframework.context.event,
-                            org.springframework.context.support,
-                            org.springframework.core,
-                            org.springframework.core.io,
-                            org.springframework.core.io.support,
-                            org.springframework.stereotype,
-                            org.springframework.transaction,
-                            org.springframework.transaction.support,
-                            org.springframework.util,
-                            -->
-                            org.xml.sax,
-                            org.xml.sax.ext,
-                            org.xml.sax.helpers,
-                            org.w3c.dom
-                            </Import-Package>
+                            *,
+                            org.opennms.core.soa,
+                            org.opennms.core.soa.config,
+                            org.opennms.core.soa.filter,
+                            org.opennms.core.soa.support
+                        </Import-Package>
                     </instructions>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.1.0</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <artifactSet>
-                                <excludes>
-                                    <exclude>org.osgi:*</exclude>
-                                    <exclude>org.slf4j:api</exclude>
-                                    <exclude>xml-apis:xml-apis</exclude>
-                                    <!-- <exclude>org.apache.servicemix.bundles:*</exclude> -->
-                                </excludes>
-                            </artifactSet>
-                            <filters>
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>OSGI-INF/blueprint/*</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
-                            <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                                    <resource>META-INF/spring.handlers</resource>
-                                </transformer>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                                    <resource>META-INF/spring.schemas</resource>
-                                </transformer>
-                            </transformers>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>
     <dependencies>
         <dependency>
-            <groupId>org.opennms.features.stooge</groupId>
-            <artifactId>api</artifactId>
-            <version>${project.version}</version>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.core</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.opennms</groupId>
-            <artifactId>opennms-dao</artifactId>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.opennms.core</groupId>
-            <artifactId>org.opennms.core.db</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.opennms</groupId>
-            <artifactId>opennms-config</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.opennms.features.collection</groupId>
-            <artifactId>org.opennms.features.collection.persistence.rrd</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.opennms.protocols</groupId>
-            <artifactId>org.opennms.protocols.xml</artifactId>
-            <version>${project.version}</version>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.gemini.blueprint</groupId>
             <artifactId>gemini-blueprint-core</artifactId>
             <version>2.0.0.RELEASE</version>
-        </dependency>
-        <dependency>
-            <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.core</artifactId>
-            <scope>provided</scope>
         </dependency>
     </dependencies>
 

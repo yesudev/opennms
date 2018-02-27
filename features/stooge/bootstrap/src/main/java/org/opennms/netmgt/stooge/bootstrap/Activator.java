@@ -28,124 +28,92 @@
 
 package org.opennms.netmgt.stooge.bootstrap;
 
-import com.google.common.collect.Maps;
-import org.eclipse.gemini.blueprint.context.support.AbstractOsgiBundleApplicationContext;
-import org.eclipse.gemini.blueprint.context.support.OsgiBundleXmlApplicationContext;
-import org.opennms.core.soa.Registration;
-import org.opennms.core.soa.RegistrationHook;
-import org.opennms.core.soa.ServiceRegistry;
-import org.opennms.netmgt.dao.api.NodeDao;
-import org.opennms.netmgt.dao.hibernate.NodeDaoHibernate;
-import org.opennms.netmgt.model.OnmsNode;
-import org.opennms.netmgt.rrd.NullRrdStrategy;
-import org.osgi.framework.BundleActivator;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.ServiceReference;
-import org.osgi.framework.ServiceRegistration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.opennms.netmgt.stooge.api.TransactionOperations;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.TransactionCallbackWithoutResult;
-
 import java.util.Arrays;
-import java.util.Dictionary;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
-public class Activator implements BundleActivator, RegistrationHook {
+import org.eclipse.gemini.blueprint.context.support.OsgiBundleXmlApplicationContext;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleActivator;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.BundleEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Strings;
+
+public class Activator implements BundleActivator {
     private static final Logger LOG = LoggerFactory.getLogger(Activator.class);
 
-    private BundleContext context;
-    private final Map<Registration, ServiceRegistration<?>> onmsRegistration2osgiRegistrationMap = new ConcurrentHashMap<Registration, ServiceRegistration<?>>();
+    private final Map<Long, OsgiBundleXmlApplicationContext> applicationContextMap = new HashMap<>();
 
     @Override
     public void start(BundleContext context) throws Exception {
         LOG.info("Start.");
-        this.context = context;
 
-        System.setProperty("opennms.home", "/home/jesse/git/opennms/target/opennms");
-        System.setProperty("org.opennms.timeseries.strategy", "rrd-disabled");
-
-        // Load the application context using Gemini
-        // We can't use the standard ClasspathXmlApplicationContext since it fails
-        // class-loader related issues and Hibernate cannot perform the package scanning properly,
-        // also due to class-loader issue.
-        final OsgiBundleXmlApplicationContext applicationContext = new OsgiBundleXmlApplicationContext(new String[]{
-                    "/META-INF/opennms/applicationContext-soa.xml",
-                    "/META-INF/opennms/applicationContext-commonConfigs.xml",
-                    "/META-INF/opennms/applicationContext-dao.xml"});
-        applicationContext.setBundleContext(context);
-        applicationContext.refresh();
-        applicationContext.start();
-
-        // Expose the services in the ONMSGi registry
-        final ServiceRegistry serviceRegistry = applicationContext.getBean(ServiceRegistry.class);
-        serviceRegistry.addRegistrationHook(this, true);
-
-        // Expose the trans ops
-        org.springframework.transaction.support.TransactionOperations transactionOperations = applicationContext.getBean(org.springframework.transaction.support.TransactionOperations.class);
-        TransactionOperationsWrapper wrapper = new TransactionOperationsWrapper(transactionOperations);
-        context.registerService(TransactionOperations.class, wrapper, new Hashtable<>());
+        context.addBundleListener(event -> {
+            // TODO MVR this should be done in a separate thread according to the gemini-blueprint/osgi documentation
+            switch (event.getType()) {
+                case BundleEvent.STARTED:
+                    startApplicationContext(event.getBundle());
+                    break;
+                case BundleEvent.UPDATED:
+                    restartApplicationContext(event.getBundle());
+                    break;
+                case BundleEvent.STOPPED:
+                    stopApplicationContext(event.getBundle());
+                    break;
+            }
+        });
 
         LOG.info("Done starting.");
-    }
-
-    private static class TransactionOperationsWrapper implements TransactionOperations {
-        private final org.springframework.transaction.support.TransactionOperations transactionOperations;
-
-        public TransactionOperationsWrapper(org.springframework.transaction.support.TransactionOperations transactionOperations) {
-            this.transactionOperations = transactionOperations;
-        }
-
-        @Override
-        public void doInTransactionWithoutResult(Runnable runnable) {
-            transactionOperations.execute(new TransactionCallbackWithoutResult() {
-                @Override
-                protected void doInTransactionWithoutResult(TransactionStatus status) {
-                    runnable.run();
-                }
-            });
-        }
     }
 
     @Override
     public void stop(BundleContext context) throws Exception {
         LOG.info("Stop.");
+        applicationContextMap.values().forEach(applicationContext -> applicationContext.close());
+        LOG.info("Done stopping.");
     }
 
-    @Override
-    public void registrationAdded(Registration registration) {
-        final String[] providedInterfaceNames = getProvidedInterfaceNames(registration);
-        final Dictionary<String, ?> properties;
-        if (registration.getProperties() == null) {
-            properties = new Hashtable<>();
-        } else {
-            properties = new Hashtable<>(registration.getProperties());
+    private void startApplicationContext(Bundle bundle) {
+        // We use "X-Spring-Context" to not interfere with default behaviour of Gemini-blueprint, which expects "Spring-Context".
+        // Otherwise the application context would be initialized twice.
+        final String springContext = bundle.getHeaders().get("X-Spring-Context");
+        if (!Strings.isNullOrEmpty(springContext)) {
+            final List<String> springContextes = StreamSupport.stream(Arrays.spliterator(springContext.split(",")), false)
+                    .map(context -> context.trim())
+                    .filter(context -> context.length() > 0).collect(Collectors.toList());
+            if (!springContextes.isEmpty()) {
+                // Load the application context using Gemini
+                // We can't use the standard ClasspathXmlApplicationContext since it fails
+                // class-loader related issues and Hibernate cannot perform the package scanning properly,
+                // also due to class-loader issue.
+                final OsgiBundleXmlApplicationContext applicationContext = new OsgiBundleXmlApplicationContext(springContextes.toArray(new String[springContextes.size()]));
+                applicationContext.setBundleContext(bundle.getBundleContext());
+                applicationContext.refresh();
+                applicationContext.start();
+                applicationContextMap.put(bundle.getBundleId(), applicationContext);
+            }
         }
-        final ServiceRegistration<?> osgiRegistration = context.registerService(providedInterfaceNames, registration.getProvider(), properties);
-        onmsRegistration2osgiRegistrationMap.put(registration, osgiRegistration);
     }
 
-    @Override
-    public void registrationRemoved(Registration registration) {
-        final ServiceRegistration<?> osgiRegistration = onmsRegistration2osgiRegistrationMap.get(registration);
-        if (osgiRegistration == null) {
-            return;
+    private void stopApplicationContext(Bundle bundle) {
+        LOG.info("Stopping application context for bundle {} (id: {})", bundle.getSymbolicName(), bundle.getBundleId());
+        final OsgiBundleXmlApplicationContext applicationContext = applicationContextMap.get(bundle.getBundleId());
+        if (applicationContext != null) {
+            applicationContext.close();
+            applicationContextMap.remove(bundle.getBundleId());
         }
-        osgiRegistration.unregister();
+        LOG.info("Stopped application context for bundle {} (id: {})", bundle.getSymbolicName(), bundle.getBundleId());
     }
 
-    private static String[] getProvidedInterfaceNames(Registration registration) {
-        return Arrays.stream(registration.getProvidedInterfaces())
-                .map(c -> c.getCanonicalName())
-                .collect(Collectors.toList())
-                .toArray(new String[registration.getProvidedInterfaces().length]);
+    private void restartApplicationContext(Bundle bundle) {
+        stopApplicationContext(bundle);
+        startApplicationContext(bundle);
     }
+
 }

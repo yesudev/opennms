@@ -12,7 +12,6 @@
     <name>OpenNMS :: Features :: Stooge</name>
 
     <modules>
-        <module>api</module>
         <module>bootstrap</module>
         <module>test</module>
     </modules>
