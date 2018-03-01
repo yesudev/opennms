@@ -68,6 +68,11 @@
       <artifactId>bson</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.freemarker</groupId>
+      <artifactId>freemarker</artifactId>
+      <version>${freemarkerVersion}</version>
+    </dependency>
+    <dependency>
       <groupId>org.opennms.features.jest</groupId>
       <artifactId>opennms-jest</artifactId>
       <version>${project.version}</version>

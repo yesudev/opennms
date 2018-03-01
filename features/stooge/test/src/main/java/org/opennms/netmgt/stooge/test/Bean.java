@@ -35,7 +35,9 @@ import org.opennms.core.ipc.sink.api.MessageConsumerManager;
 import org.opennms.core.ipc.sink.api.SinkModule;
 import org.opennms.netmgt.dao.api.DistPollerDao;
 import org.opennms.netmgt.dao.api.NodeDao;
+import org.opennms.netmgt.flows.api.FlowRepository;
 import org.opennms.netmgt.model.OnmsNode;
+import org.opennms.netmgt.telemetry.adapters.netflow.v5.Netflow5Adapter;
 import org.opennms.netmgt.telemetry.config.model.Protocol;
 import org.opennms.netmgt.telemetry.ipc.TelemetryProtos;
 import org.opennms.netmgt.telemetry.ipc.TelemetrySinkModule;
@@ -43,6 +45,8 @@ import org.opennms.netmgt.telemetry.listeners.api.TelemetryMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.support.TransactionOperations;
+
+import com.codahale.metrics.MetricRegistry;
 
 public class Bean implements MessageConsumer<TelemetryMessage, TelemetryProtos.TelemetryMessageLog> {
     private static final Logger LOG = LoggerFactory.getLogger(Bean.class);
@@ -52,6 +56,8 @@ public class Bean implements MessageConsumer<TelemetryMessage, TelemetryProtos.T
     private TransactionOperations transactionOperations;
     private MessageConsumerManager messageConsumerManager;
     private TelemetrySinkModule sinkModule;
+    private FlowRepository flowRepository;
+    private Netflow5Adapter netflow5Adapter;
 
     public void init() throws Exception {
         LOG.info("init");
@@ -72,6 +78,8 @@ public class Bean implements MessageConsumer<TelemetryMessage, TelemetryProtos.T
         sinkModule.setDistPollerDao(distPollerDao);
         messageConsumerManager.registerConsumer(this);
 
+        this.netflow5Adapter = new Netflow5Adapter(new MetricRegistry(), flowRepository);
+
         LOG.info("Started consumer for: {}", sinkModule);
     }
 
@@ -79,36 +87,24 @@ public class Bean implements MessageConsumer<TelemetryMessage, TelemetryProtos.T
         LOG.info("destroy");
     }
 
-    public NodeDao getNodeDao() {
-        return nodeDao;
-    }
-
     public void setNodeDao(NodeDao nodeDao) {
         this.nodeDao = nodeDao;
-    }
-
-    public DistPollerDao getDistPollerDao() {
-        return distPollerDao;
     }
 
     public void setDistPollerDao(DistPollerDao distPollerDao) {
         this.distPollerDao = distPollerDao;
     }
 
-    public TransactionOperations getTransactionOperations() {
-        return transactionOperations;
-    }
-
     public void setTransactionOperations(TransactionOperations transactionOperations) {
         this.transactionOperations = transactionOperations;
     }
 
-    public MessageConsumerManager getMessageConsumerManager() {
-        return messageConsumerManager;
-    }
-
     public void setMessageConsumerManager(MessageConsumerManager messageConsumerManager) {
         this.messageConsumerManager = messageConsumerManager;
+    }
+
+    public void setFlowRepository(FlowRepository flowRepository) {
+        this.flowRepository = flowRepository;
     }
 
     @Override
@@ -119,6 +115,7 @@ public class Bean implements MessageConsumer<TelemetryMessage, TelemetryProtos.T
     @Override
     public void handleMessage(TelemetryProtos.TelemetryMessageLog messageLog) {
         LOG.warn("Got message: {}", messageLog);
+        netflow5Adapter.handleMessageLog(messageLog);
     }
 
 }

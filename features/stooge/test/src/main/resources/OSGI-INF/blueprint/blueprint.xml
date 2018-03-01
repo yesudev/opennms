@@ -12,6 +12,7 @@
     <reference id="alarmDao" interface="org.opennms.netmgt.dao.api.AlarmDao"/>
     <reference id="distPollerDao" interface="org.opennms.netmgt.dao.api.DistPollerDao"/>
     <reference id="transactionOperations" interface="org.springframework.transaction.support.TransactionOperations"/>
+    <reference id="flowRepository" interface="org.opennms.netmgt.flows.api.FlowRepository" availability="mandatory"/>
     <reference id="messageConsumerManager" interface="org.opennms.core.ipc.sink.api.MessageConsumerManager" availability="optional" />
 
     <bean id="bean" class="org.opennms.netmgt.stooge.test.Bean" init-method="init" destroy-method="destroy">
@@ -19,6 +20,7 @@
         <property name="distPollerDao" ref="distPollerDao"/>
         <property name="transactionOperations" ref="transactionOperations"/>
         <property name="messageConsumerManager" ref="messageConsumerManager"/>
+        <property name="flowRepository" ref="flowRepository" />
     </bean>
 
     <bean id="nodeBean" class="org.opennms.netmgt.stooge.test.NodeBean" init-method="init" destroy-method="destroy">
