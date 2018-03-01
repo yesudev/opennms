@@ -12,14 +12,14 @@
     <reference id="alarmDao" interface="org.opennms.netmgt.dao.api.AlarmDao"/>
     <reference id="distPollerDao" interface="org.opennms.netmgt.dao.api.DistPollerDao"/>
     <reference id="transactionOperations" interface="org.springframework.transaction.support.TransactionOperations"/>
-    <!--<reference id="messageConsumerManager" interface="org.opennms.core.ipc.sink.api.MessageConsumerManager" availability="optional" />-->
+    <reference id="messageConsumerManager" interface="org.opennms.core.ipc.sink.api.MessageConsumerManager" availability="optional" />
 
-    <!--<bean id="bean" class="org.opennms.netmgt.stooge.test.Bean" init-method="init" destroy-method="destroy">-->
-    <!--<property name="nodeDao" ref="nodeDao"/>-->
-    <!--<property name="distPollerDao" ref="distPollerDao"/>-->
-    <!--<property name="transactionOperations" ref="transactionOperations"/>-->
-    <!--<property name="messageConsumerManager" ref="messageConsumerManager"/>-->
-    <!--</bean>-->
+    <bean id="bean" class="org.opennms.netmgt.stooge.test.Bean" init-method="init" destroy-method="destroy">
+        <property name="nodeDao" ref="nodeDao"/>
+        <property name="distPollerDao" ref="distPollerDao"/>
+        <property name="transactionOperations" ref="transactionOperations"/>
+        <property name="messageConsumerManager" ref="messageConsumerManager"/>
+    </bean>
 
     <bean id="nodeBean" class="org.opennms.netmgt.stooge.test.NodeBean" init-method="init" destroy-method="destroy">
         <argument ref="nodeDao" />

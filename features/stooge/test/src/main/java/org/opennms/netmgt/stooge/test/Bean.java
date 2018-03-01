@@ -28,82 +28,97 @@
 
 package org.opennms.netmgt.stooge.test;
 
-public class Bean {
-//        implements MessageConsumer<TelemetryMessage, TelemetryProtos.TelemetryMessageLog> {
-//    private static final Logger LOG = LoggerFactory.getLogger(Bean.class);
-//
-//    private NodeDao nodeDao;
-//    private DistPollerDao distPollerDao;
-//    private TransactionOperations transactionOperations;
-//    private MessageConsumerManager messageConsumerManager;
-//    private TelemetrySinkModule sinkModule;
-//
-//    public void init() throws Exception {
-//        LOG.info("init");
-//        transactionOperations.execute((status) -> {
-//            final List<OnmsNode> nodes = nodeDao.findAll();
-//            if (nodes.isEmpty()) {
-//                LOG.warn("No nodes found.");
-//            }
-//            for (OnmsNode node : nodes) {
-//                LOG.info("Found node: {}", node);
-//            }
-//            return null;
-//        });
-//
-//        Protocol protocol = new Protocol();
-//        protocol.setName("TEST");
-//        sinkModule = new TelemetrySinkModule(protocol);
-//        sinkModule.setDistPollerDao(distPollerDao);
-//        messageConsumerManager.registerConsumer(this);
-//
-//        LOG.info("Started consumer for: {}", sinkModule);
-//    }
-//
-//    public void destroy() {
-//        LOG.info("destroy");
-//    }
-//
-//    public NodeDao getNodeDao() {
-//        return nodeDao;
-//    }
-//
-//    public void setNodeDao(NodeDao nodeDao) {
-//        this.nodeDao = nodeDao;
-//    }
-//
-//    public DistPollerDao getDistPollerDao() {
-//        return distPollerDao;
-//    }
-//
-//    public void setDistPollerDao(DistPollerDao distPollerDao) {
-//        this.distPollerDao = distPollerDao;
-//    }
-//
-//    public TransactionOperations getTransactionOperations() {
-//        return transactionOperations;
-//    }
-//
-//    public void setTransactionOperations(TransactionOperations transactionOperations) {
-//        this.transactionOperations = transactionOperations;
-//    }
-//
-//    public MessageConsumerManager getMessageConsumerManager() {
-//        return messageConsumerManager;
-//    }
-//
-//    public void setMessageConsumerManager(MessageConsumerManager messageConsumerManager) {
-//        this.messageConsumerManager = messageConsumerManager;
-//    }
-//
-//    @Override
-//    public SinkModule<TelemetryMessage, TelemetryProtos.TelemetryMessageLog> getModule() {
-//        return sinkModule;
-//    }
-//
-//    @Override
-//    public void handleMessage(TelemetryProtos.TelemetryMessageLog messageLog) {
-//        LOG.warn("Got message: {}", messageLog);
-//    }
+import java.util.List;
+
+import org.opennms.core.ipc.sink.api.MessageConsumer;
+import org.opennms.core.ipc.sink.api.MessageConsumerManager;
+import org.opennms.core.ipc.sink.api.SinkModule;
+import org.opennms.netmgt.dao.api.DistPollerDao;
+import org.opennms.netmgt.dao.api.NodeDao;
+import org.opennms.netmgt.model.OnmsNode;
+import org.opennms.netmgt.telemetry.config.model.Protocol;
+import org.opennms.netmgt.telemetry.ipc.TelemetryProtos;
+import org.opennms.netmgt.telemetry.ipc.TelemetrySinkModule;
+import org.opennms.netmgt.telemetry.listeners.api.TelemetryMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.transaction.support.TransactionOperations;
+
+public class Bean implements MessageConsumer<TelemetryMessage, TelemetryProtos.TelemetryMessageLog> {
+    private static final Logger LOG = LoggerFactory.getLogger(Bean.class);
+
+    private NodeDao nodeDao;
+    private DistPollerDao distPollerDao;
+    private TransactionOperations transactionOperations;
+    private MessageConsumerManager messageConsumerManager;
+    private TelemetrySinkModule sinkModule;
+
+    public void init() throws Exception {
+        LOG.info("init");
+        transactionOperations.execute((status) -> {
+            final List<OnmsNode> nodes = nodeDao.findAll();
+            if (nodes.isEmpty()) {
+                LOG.warn("No nodes found.");
+            }
+            for (OnmsNode node : nodes) {
+                LOG.info("Found node: {}", node);
+            }
+            return null;
+        });
+
+        final Protocol protocol = new Protocol();
+        protocol.setName("TEST");
+        sinkModule = new TelemetrySinkModule(protocol);
+        sinkModule.setDistPollerDao(distPollerDao);
+        messageConsumerManager.registerConsumer(this);
+
+        LOG.info("Started consumer for: {}", sinkModule);
+    }
+
+    public void destroy() {
+        LOG.info("destroy");
+    }
+
+    public NodeDao getNodeDao() {
+        return nodeDao;
+    }
+
+    public void setNodeDao(NodeDao nodeDao) {
+        this.nodeDao = nodeDao;
+    }
+
+    public DistPollerDao getDistPollerDao() {
+        return distPollerDao;
+    }
+
+    public void setDistPollerDao(DistPollerDao distPollerDao) {
+        this.distPollerDao = distPollerDao;
+    }
+
+    public TransactionOperations getTransactionOperations() {
+        return transactionOperations;
+    }
+
+    public void setTransactionOperations(TransactionOperations transactionOperations) {
+        this.transactionOperations = transactionOperations;
+    }
+
+    public MessageConsumerManager getMessageConsumerManager() {
+        return messageConsumerManager;
+    }
+
+    public void setMessageConsumerManager(MessageConsumerManager messageConsumerManager) {
+        this.messageConsumerManager = messageConsumerManager;
+    }
+
+    @Override
+    public SinkModule<TelemetryMessage, TelemetryProtos.TelemetryMessageLog> getModule() {
+        return sinkModule;
+    }
+
+    @Override
+    public void handleMessage(TelemetryProtos.TelemetryMessageLog messageLog) {
+        LOG.warn("Got message: {}", messageLog);
+    }
 
 }
