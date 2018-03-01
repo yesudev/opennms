@@ -95,17 +95,7 @@
               org.opennms.netmgt.xml.eventconf.*;version="${project.version}",
               org.opennms.netmgt.xml.rtc.*;version="${project.version}"
             </Export-Package>
-            <Import-Package>
-              javassist.util.proxy,
-              org.hibernate.proxy,
-
-              org.eclipse.persistence.internal.jaxb;resolution:=optional,
-              org.eclipse.persistence.internal.jaxb.many;resolution:=optional,
-              org.opennms.core.network,
-              org.opennms.netmgt.collection.adapters,
-
-              *
-            </Import-Package>
+            <Import-Package>*</Import-Package>
           </instructions>
         </configuration>
       </plugin>

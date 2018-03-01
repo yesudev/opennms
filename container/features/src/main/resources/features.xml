@@ -1193,7 +1193,7 @@
         <feature dependency="true">commons-lang3</feature>
         <feature dependency="true">commons-jexl</feature>
         <feature dependency="true">dnsjava</feature>
-        <!--<feature dependency="true">hibernate36</feature>-->
+        <feature dependency="true">hibernate36</feature>
         <feature dependency="true">jaxb</feature>
         <feature dependency="true">camel-core</feature>
         <feature dependency="true">javax.validation</feature>
@@ -1201,17 +1201,17 @@
         <feature dependency="true">opennms-core</feature>
         <feature dependency="true">opennms-core-ipc-rpc-api</feature>
 
-        <bundle start-level="50">mvn:org.opennms.features.stooge/hibernate/${project.version}</bundle>
+        <bundle>mvn:org.opennms.core.snmp/org.opennms.core.snmp.api/${project.version}</bundle>
 
-        <bundle start-level="55">mvn:org.opennms.core.snmp/org.opennms.core.snmp.api/${project.version}</bundle>
+        <bundle>mvn:org.opennms/opennms-config-api/${project.version}</bundle>
+        <bundle>mvn:org.opennms/opennms-config-model/${project.version}</bundle>
+        <bundle>mvn:org.opennms/opennms-config-jaxb/${project.version}</bundle>
 
-        <bundle dependency="true">mvn:org.opennms/opennms-config-api/${project.version}</bundle>
-        <bundle dependency="true">mvn:org.opennms/opennms-config-model/${project.version}</bundle>
-        <bundle dependency="true">mvn:org.opennms/opennms-config-jaxb/${project.version}</bundle>
 
         <bundle>mvn:org.opennms/opennms-rrd-api/${project.version}</bundle>
 
         <bundle dependency="true">mvn:org.opennms.features.collection/org.opennms.features.collection.core/${project.version}</bundle>
+
         <bundle>mvn:org.opennms.features.events/org.opennms.features.events.api/${project.version}</bundle>
         <bundle>mvn:org.opennms.features.collection/org.opennms.features.collection.api/${project.version}</bundle>
         <bundle>mvn:org.opennms.features.measurements/org.opennms.features.measurements.api/${project.version}</bundle>
@@ -1221,25 +1221,18 @@
         <bundle>mvn:org.opennms/opennms-model/${project.version}</bundle>
     </feature>
 
-    <feature name="stooge-dao-api">
-        <feature dependency="true">stooge-model</feature>
-        <bundle>mvn:org.opennms/opennms-dao-api/${project.version}</bundle>
-        <bundle>mvn:org.opennms.features.bsm/org.opennms.features.bsm.persistence.api/${project.version}</bundle>
-        <bundle>mvn:org.opennms.features.flows.classification.persistence/org.opennms.features.flows.classification.persistence.api/${project.version}</bundle>
-    </feature>
-
     <feature name="stooge-dao">
+        <feature dependency="true">hibernate36</feature>
         <feature dependency="true">hibernate-validator41</feature>
-        <feature dependency="true">stooge-dao-api</feature>
+        <feature dependency="true">stooge-model</feature>
         <feature dependency="true">opennms-core-db</feature>
+
         <bundle dependency="true">wrap:mvn:com.googlecode.concurrent-locks/concurrent-locks/1.0.0</bundle>
         <bundle dependency="true">wrap:mvn:org.jasypt/jasypt/1.9.0</bundle>
 
         <bundle>mvn:org.opennms/opennms-config/${project.version}</bundle>
         <bundle>mvn:org.opennms.features.stooge/datasource/${project.version}</bundle>
-        <bundle>mvn:org.opennms/opennms-dao/${project.version}</bundle>
-        <bundle>mvn:org.opennms.features.bsm/org.opennms.features.bsm.persistence.impl/${project.version}</bundle>
-        <bundle>mvn:org.opennms.features.flows.classification.persistence/org.opennms.features.flows.classification.persistence.impl/${project.version}</bundle>
+        <bundle>mvn:org.opennms.features.stooge/dao/${project.version}</bundle>
     </feature>
 
     <feature name="stooge-scv" description="OpenNMS :: Stooge :: SCV" version="${project.version}">
