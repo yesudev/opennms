@@ -23,7 +23,8 @@
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
                         <Bundle-Version>${project.version}</Bundle-Version>
                         <Bundle-Activator>org.opennms.netmgt.stooge.bootstrap.Activator</Bundle-Activator>
-                        <X-Spring-Context>META-INF/opennms/applicationContext-osgi.xml</X-Spring-Context>
+                        <Spring-Context>META-INF/opennms/applicationContext-osgi.xml</Spring-Context>
+                        <Embed-Dependency>groupId=org.eclipse.gemini.blueprint</Embed-Dependency>
                         <Import-Package>
                             *,
                             org.opennms.core.soa,
@@ -56,6 +57,45 @@
             <artifactId>gemini-blueprint-core</artifactId>
             <version>2.0.0.RELEASE</version>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.gemini.blueprint</groupId>
+            <artifactId>gemini-blueprint-extender</artifactId>
+            <version>2.0.0.RELEASE</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.gemini.blueprint</groupId>
+            <artifactId>gemini-blueprint-io</artifactId>
+            <version>2.0.0.RELEASE</version>
+        </dependency>
     </dependencies>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.apache.servicemix.bundles</groupId>
+                <artifactId>org.apache.servicemix.bundles.spring-aop</artifactId>
+                <version>${springVersion}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.servicemix.bundles</groupId>
+                <artifactId>org.apache.servicemix.bundles.spring-beans</artifactId>
+                <version>${springVersion}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.servicemix.bundles</groupId>
+                <artifactId>org.apache.servicemix.bundles.spring-context</artifactId>
+                <version>${springVersion}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.servicemix.bundles</groupId>
+                <artifactId>org.apache.servicemix.bundles.spring-core</artifactId>
+                <version>${springVersion}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.servicemix.bundles</groupId>
+                <artifactId>org.apache.servicemix.bundles.spring-expression</artifactId>
+                <version>${springVersion}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
 </project>

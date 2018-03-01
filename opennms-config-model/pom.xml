@@ -60,7 +60,6 @@
               org.opennms.netmgt.config.mailtransporttest.*;version="${project.version}",
               org.opennms.netmgt.config.map.adapter.*;version="${project.version}",
               org.opennms.netmgt.config.microblog.*;version="${project.version}",
-              org.opennms.netmgt.model.monitoringLocations.*;version="${project.version}",
               org.opennms.netmgt.config.notifd.*;version="${project.version}",
               org.opennms.netmgt.config.notificationCommands.*;version="${project.version}",
               org.opennms.netmgt.config.notifications.*;version="${project.version}",
@@ -97,10 +96,14 @@
               org.opennms.netmgt.xml.rtc.*;version="${project.version}"
             </Export-Package>
             <Import-Package>
+              javassist.util.proxy,
+              org.hibernate.proxy,
+
               org.eclipse.persistence.internal.jaxb;resolution:=optional,
               org.eclipse.persistence.internal.jaxb.many;resolution:=optional,
               org.opennms.core.network,
               org.opennms.netmgt.collection.adapters,
+
               *
             </Import-Package>
           </instructions>

@@ -28,92 +28,71 @@
 
 package org.opennms.netmgt.stooge.bootstrap;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
-import org.eclipse.gemini.blueprint.context.support.OsgiBundleXmlApplicationContext;
+import org.eclipse.gemini.blueprint.extender.internal.activator.ContextLoaderListener;
+import org.eclipse.gemini.blueprint.extender.internal.activator.NamespaceHandlerActivator;
+import org.eclipse.gemini.blueprint.extender.internal.support.ExtenderConfiguration;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.BundleEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.util.ReflectionUtils;
 
-import com.google.common.base.Strings;
 
+// Original the Activator simply loaded the ApplicationContext from the bundle.
+// However it lacked the functionality to load the spring.handlers and other spring internals.
+// Therefore we re-use the functionality from eclipse-blueprint to do so.
+// See https://github.com/eclipse/gemini.blueprint/blob/6976b50e76a17aaf800a60f836c6b7af46fbf483/extender/src/main/java/org/eclipse/gemini/blueprint/extender/internal/boot/ChainActivator.java
 public class Activator implements BundleActivator {
-    private static final Logger LOG = LoggerFactory.getLogger(Activator.class);
 
-    private final Map<Long, OsgiBundleXmlApplicationContext> applicationContextMap = new HashMap<>();
+    private final BundleActivator[] activators;
+
+    public Activator() {
+        final NamespaceHandlerActivator activateCustomNamespaceHandling = new NamespaceHandlerActivator();
+        final ExtenderConfiguration initializeExtenderConfiguration = new ExtenderConfiguration();
+        final MyContextLoaderListener listenForSpringDmBundles = new MyContextLoaderListener(initializeExtenderConfiguration);
+
+        activators = new BundleActivator[] {
+                activateCustomNamespaceHandling,
+                initializeExtenderConfiguration,
+                listenForSpringDmBundles
+        };
+    }
 
     @Override
     public void start(BundleContext context) throws Exception {
-        LOG.info("Start.");
+        for (int i = 0; i < activators.length; i++) {
+            activators[i].start(context);
+        }
 
-        context.addBundleListener(event -> {
-            // TODO MVR this should be done in a separate thread according to the gemini-blueprint/osgi documentation
-            switch (event.getType()) {
-                case BundleEvent.STARTED:
-                    startApplicationContext(event.getBundle());
-                    break;
-                case BundleEvent.UPDATED:
-                    restartApplicationContext(event.getBundle());
-                    break;
-                case BundleEvent.STOPPED:
-                    stopApplicationContext(event.getBundle());
-                    break;
-            }
-        });
-
-        LOG.info("Done starting.");
+        // Manually trigger start of spring application context for this bundle
+        ((MyContextLoaderListener)activators[activators.length - 1]).maybeCreateApplicationContextFor(context.getBundle());
     }
 
     @Override
     public void stop(BundleContext context) throws Exception {
-        LOG.info("Stop.");
-        applicationContextMap.values().forEach(applicationContext -> applicationContext.close());
-        LOG.info("Done stopping.");
-    }
-
-    private void startApplicationContext(Bundle bundle) {
-        // We use "X-Spring-Context" to not interfere with default behaviour of Gemini-blueprint, which expects "Spring-Context".
-        // Otherwise the application context would be initialized twice.
-        final String springContext = bundle.getHeaders().get("X-Spring-Context");
-        if (!Strings.isNullOrEmpty(springContext)) {
-            final List<String> springContextes = StreamSupport.stream(Arrays.spliterator(springContext.split(",")), false)
-                    .map(context -> context.trim())
-                    .filter(context -> context.length() > 0).collect(Collectors.toList());
-            if (!springContextes.isEmpty()) {
-                // Load the application context using Gemini
-                // We can't use the standard ClasspathXmlApplicationContext since it fails
-                // class-loader related issues and Hibernate cannot perform the package scanning properly,
-                // also due to class-loader issue.
-                final OsgiBundleXmlApplicationContext applicationContext = new OsgiBundleXmlApplicationContext(springContextes.toArray(new String[springContextes.size()]));
-                applicationContext.setBundleContext(bundle.getBundleContext());
-                applicationContext.refresh();
-                applicationContext.start();
-                applicationContextMap.put(bundle.getBundleId(), applicationContext);
-            }
+        for (int i = activators.length - 1; i >= 0; i--) {
+            activators[i].stop(context);
         }
     }
 
-    private void stopApplicationContext(Bundle bundle) {
-        LOG.info("Stopping application context for bundle {} (id: {})", bundle.getSymbolicName(), bundle.getBundleId());
-        final OsgiBundleXmlApplicationContext applicationContext = applicationContextMap.get(bundle.getBundleId());
-        if (applicationContext != null) {
-            applicationContext.close();
-            applicationContextMap.remove(bundle.getBundleId());
+    // UGLY HACK  !!
+    // Gemini-listeners do not start application context within the activating bundle.
+    // We use this implementation to manually invoke it
+    private static class MyContextLoaderListener extends ContextLoaderListener {
+
+        public MyContextLoaderListener(ExtenderConfiguration extenderConfiguration) {
+            super(extenderConfiguration);
         }
-        LOG.info("Stopped application context for bundle {} (id: {})", bundle.getSymbolicName(), bundle.getBundleId());
-    }
 
-    private void restartApplicationContext(Bundle bundle) {
-        stopApplicationContext(bundle);
-        startApplicationContext(bundle);
+        public void maybeCreateApplicationContextFor(Bundle bundle) {
+            final Field field = ReflectionUtils.findField(getClass(), "lifecycleManager", null);
+            ReflectionUtils.makeAccessible(field);
+            Object target = ReflectionUtils.getField(field, this);
+            Method method = ReflectionUtils.findMethod(target.getClass(), "maybeCreateApplicationContextFor", Bundle.class);
+            ReflectionUtils.makeAccessible(method);
+            ReflectionUtils.invokeMethod(method, target, bundle);
+        }
     }
-
 }

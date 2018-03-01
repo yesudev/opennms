@@ -70,6 +70,16 @@ config:update
 
 #### The Stooge
 
+TODO MVR
+
+```
+feature:repo-add mvn:org.opennms.karaf/opennms/22.0.0-SNAPSHOT/xml/features
+feature:repo-add mvn:org.apache.karaf.features/spring-legacy/4.1.2/xml/features
+feature:install stooge-core
+
+```
+
+
 In a vanilla Karaf 4.1.2 distribution.
 
 Edit `featuresRepositories` in `etc/org.apache.karaf.features.cfg` to include:
