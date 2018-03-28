@@ -20,6 +20,15 @@
     </package>
   </protocol>
 
+  <protocol name="Flow-*" description="Listener for Flow * UDP packets" enabled="false">
+    <listener name="Flow-*-UDP-4700" class-name="org.opennms.netmgt.telemetry.listeners.udp.UdpListener">
+      <parameter key="port" value="4700"/>
+    </listener>
+
+    <adapter name="Flow-*-Dispatcher" class-name="org.opennms.netmgt.telemetry.adapters.netflow.FlowDispatcherAdapter">
+    </adapter>
+  </protocol>
+
   <protocol name="Netflow-5" description="Listener for Netflow 5 UDP packets" enabled="false">
     <listener name="Netflow-5-UDP-8877" class-name="org.opennms.netmgt.telemetry.listeners.udp.UdpListener">
          <parameter key="port" value="8877"/>

@@ -36,22 +36,22 @@ import org.opennms.core.utils.InetAddressUtils;
 
 public class Utils {
     
-    static int getInt(final int startIndex, final int endIndex, final ByteBuffer data, final int offset) {
+    public static int getInt(final int startIndex, final int endIndex, final ByteBuffer data, final int offset) {
         final BigInteger bigInteger = getBigInteger(startIndex, endIndex, data, offset);
         return bigInteger.intValue();
     }
-    
-    static short getShort(final int startIndex, final int endIndex, final ByteBuffer data, final int offset) {
+
+    public static short getShort(final int startIndex, final int endIndex, final ByteBuffer data, final int offset) {
         final BigInteger bigInteger = getBigInteger(startIndex, endIndex, data, offset);
         return bigInteger.shortValue();
     }
 
-    static long getLong(final int startIndex, final int endIndex, final ByteBuffer data, final int offset) {
+    public static long getLong(final int startIndex, final int endIndex, final ByteBuffer data, final int offset) {
         final BigInteger bigInteger = getBigInteger(startIndex, endIndex, data, offset);
         return bigInteger.longValue();
     }
 
-    static String getInetAddress(final int startIndex, final int endIndex, final ByteBuffer data, final int offset) {
+    public static String getInetAddress(final int startIndex, final int endIndex, final ByteBuffer data, final int offset) {
         final byte[] bytes = getBytes(data, offset + startIndex, endIndex - startIndex + 1);
         return InetAddressUtils.toIpAddrString(bytes);
     }

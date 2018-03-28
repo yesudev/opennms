@@ -46,6 +46,19 @@
 		</service-properties>
 	</service>
 
+	<!-- Dispatcher Factory and Adapter -->
+	<bean id="dispatcherFactory" class="org.opennms.netmgt.telemetry.adapters.netflow.FlowDispatcherAdapterFactory">
+		<property name="netflow5AdapterFactory" ref="netflow5Factory"/>
+		<property name="netflow9AdapterFactory" ref="netflow9Factory"/>
+		<property name="ipfixAdapterFactory" ref="ipfixFactory"/>
+	</bean>
+	<service ref="dispatcherFactory" interface="org.opennms.netmgt.telemetry.adapters.api.AdapterFactory">
+		<service-properties>
+			<entry key="registration.export" value="true" />
+			<entry key="type" value="org.opennms.netmgt.telemetry.adapters.netflow.FlowDispatcherAdapter" />
+		</service-properties>
+	</service>
+
 	<!-- Metrics -->
 	<bean id="flowAdapterMetricRegistry" class="com.codahale.metrics.MetricRegistry"/>
 	<bean id="flowAdapterMetricRegistryJmxReporterBuilder" class="com.codahale.metrics.JmxReporter" factory-method="forRegistry">
