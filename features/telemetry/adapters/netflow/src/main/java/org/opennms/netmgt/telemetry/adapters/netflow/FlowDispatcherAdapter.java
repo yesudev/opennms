@@ -29,27 +29,69 @@
 package org.opennms.netmgt.telemetry.adapters.netflow;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.opennms.netmgt.telemetry.adapters.api.Adapter;
 import org.opennms.netmgt.telemetry.adapters.api.TelemetryMessage;
 import org.opennms.netmgt.telemetry.adapters.api.TelemetryMessageLog;
-import org.opennms.netmgt.telemetry.adapters.netflow.ipfix.IpfixAdapter;
-import org.opennms.netmgt.telemetry.adapters.netflow.v5.Netflow5Adapter;
 import org.opennms.netmgt.telemetry.adapters.netflow.v5.proto.Utils;
-import org.opennms.netmgt.telemetry.adapters.netflow.v9.Netflow9Adapter;
 import org.opennms.netmgt.telemetry.config.api.Protocol;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FlowDispatcherAdapter implements Adapter {
 
-    private final Netflow9Adapter netflow9Adapter;
-    private final Netflow5Adapter netflow5Adapter;
-    private final IpfixAdapter ipfixAdapter;
+    public static class FlowVersionSpecificMessageLog implements TelemetryMessageLog {
 
-    public FlowDispatcherAdapter(final Netflow5Adapter netflow5Adapter,
-                                 final Netflow9Adapter netflow9Adapter,
-                                 final IpfixAdapter ipfixAdapter) {
+        private final TelemetryMessageLog delegate;
+        private final List<TelemetryMessage> messages = new ArrayList<>();
+
+        public FlowVersionSpecificMessageLog(TelemetryMessageLog log) {
+            this.delegate = log;
+        }
+
+        @Override
+        public String getLocation() {
+            return delegate.getLocation();
+        }
+
+        @Override
+        public String getSystemId() {
+            return delegate.getSystemId();
+        }
+
+        @Override
+        public int getSourcePort() {
+            return delegate.getSourcePort();
+        }
+
+        @Override
+        public String getSourceAddress() {
+            return delegate.getSourceAddress();
+        }
+
+        @Override
+        public List<? extends TelemetryMessage> getMessageList() {
+            return messages;
+        }
+
+        public void addMessage(TelemetryMessage message) {
+            messages.add(message);
+        }
+    }
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final Adapter netflow9Adapter;
+    private final Adapter netflow5Adapter;
+    private final Adapter ipfixAdapter;
+
+    public FlowDispatcherAdapter(final Adapter netflow5Adapter,
+                                 final Adapter netflow9Adapter,
+                                 final Adapter ipfixAdapter) {
         this.netflow5Adapter = Objects.requireNonNull(netflow5Adapter);
         this.netflow9Adapter = Objects.requireNonNull(netflow9Adapter);
         this.ipfixAdapter = Objects.requireNonNull(ipfixAdapter);
@@ -63,26 +105,46 @@ public class FlowDispatcherAdapter implements Adapter {
     @Override
     public void handleMessageLog(TelemetryMessageLog messageLog) {
         if (!messageLog.getMessageList().isEmpty()) {
-            LoggerFactory.getLogger(getClass()).debug("Received flows. Determine concrete adapter to dispatch");
+            logger.debug("Received flows. Determine concrete adapters to dispatch");
 
-            // get 1st message and peak
-            final TelemetryMessage message = messageLog.getMessageList().get(0);
-            final byte[] bytes = message.getByteArray();
+            // Assign messages from log to adapters to dispatch to
+            final Map<Adapter, TelemetryMessageLog> dispatcherMap = aggregate(messageLog);
 
-            try {
-                final Adapter adapter = getAdapter(bytes);
-                LoggerFactory.getLogger(getClass()).debug("Dispatching flows to {}", adapter.getClass());
-                adapter.handleMessageLog(messageLog);
-            } catch (IllegalArgumentException ex) {
-                LoggerFactory.getLogger(getClass()).error("Received flow with invalid version information. Cannot dispatch to concrete adapter. Dropping packet", ex);
+            // now dispatch
+            for (Adapter adapter : dispatcherMap.keySet()) {
+                final TelemetryMessageLog versionSpecificMessageLog = dispatcherMap.get(adapter);
+                logger.debug("{}: dispatching {}/{} messages", adapter.getClass(), versionSpecificMessageLog.getMessageList().size(), messageLog.getMessageList());
+                adapter.handleMessageLog(versionSpecificMessageLog);
             }
         } else {
-            LoggerFactory.getLogger(getClass()).debug("Received empty flows. Nothing to do");
+            logger.debug("Received empty flows. Nothing to do");
         }
     }
 
+    protected Map<Adapter, TelemetryMessageLog> aggregate(final TelemetryMessageLog messageLog) {
+        final Map<Adapter, TelemetryMessageLog> dispatcherMap = new HashMap<>();
+        for (TelemetryMessage message : messageLog.getMessageList()) {
+            try {
+                final byte[] bytes = message.getByteArray();
+                final Adapter adapter = getAdapter(bytes);
+                logger.debug("Dispatching flows to {}", adapter.getClass());
+
+                // Ensure mapping exists
+                if (!dispatcherMap.containsKey(adapter)) {
+                    dispatcherMap.put(adapter, new FlowVersionSpecificMessageLog(messageLog));
+                }
+
+                // Add new message to log
+                ((FlowVersionSpecificMessageLog) dispatcherMap.get(adapter)).addMessage(message);
+            } catch (IllegalArgumentException ex) {
+                logger.error("Received flow with invalid version information. Cannot dispatch to concrete adapter. Dropping packet", ex);
+            }
+        }
+        return dispatcherMap;
+    }
+
     protected Adapter getAdapter(int version) {
-        LoggerFactory.getLogger(getClass()).debug("Determined concrete adapter for version: {}", version);
+        logger.debug("Determined concrete adapter for version: {}", version);
         // determine where to dispatch to
         switch(version) {
             case 5:  return netflow5Adapter;
@@ -98,7 +160,7 @@ public class FlowDispatcherAdapter implements Adapter {
         final ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
         int version = Utils.getInt(0, 1, byteBuffer, 0);
         if (version == 0) {
-            LoggerFactory.getLogger(getClass()).debug("Received version is {}. Assuming sflow. Reading next 2 bytes to verify.", version);
+            logger.debug("Received version is {}. Assuming sflow. Reading next 2 bytes to verify.", version);
             version = Utils.getInt(0, 1, byteBuffer, 1);
             if (version != 5) {
                 throw new IllegalArgumentException("Invalid sflow version " + version);
