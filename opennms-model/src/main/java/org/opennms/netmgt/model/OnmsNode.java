@@ -141,6 +141,9 @@ public class OnmsNode extends OnmsEntity implements Serializable, Comparable<Onm
     /** nullable persistent field */
     private String m_label;
 
+    /** boolean flag for a flow exporting node */
+    private boolean m_hasFlows;
+
     @Transient
     @XmlTransient
     @JsonIgnore
@@ -442,6 +445,17 @@ public class OnmsNode extends OnmsEntity implements Serializable, Comparable<Onm
     @Column(name="nodeSysName", length=256)
     public String getSysName() {
         return m_sysName;
+    }
+
+    /**
+     * <p>hasFlows</p>
+     *
+     * @return a {@link java.lang.Boolean} object.
+     */
+    @Column(name="hasFlows")
+    @XmlAttribute(name="hasFlows")
+    public Boolean hasFlows() {
+        return m_hasFlows;
     }
 
     /**
@@ -1095,6 +1109,8 @@ public class OnmsNode extends OnmsEntity implements Serializable, Comparable<Onm
         retval.append("sysContact", m_sysContact);
         retval.append("type", m_type == null ? null : m_type.toString());
         retval.append("operatingSystem", m_operatingSystem);
+        retval.append("hasFlows", hasFlows());
+
         return retval.toString();
     }
 
