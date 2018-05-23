@@ -528,12 +528,16 @@ public class ElasticFlowRepository implements FlowRepository {
     }
 
     private CompletableFuture<SearchResult> searchAsync(String query, TimeRangeFilter timeRangeFilter) {
-        LOG.debug("Executing asynchronous query: {}", query);
         Search.Builder builder = new Search.Builder(query)
                 .addType(TYPE);
         if(timeRangeFilter != null) {
-            builder.addIndices(indexSelector.getIndexNames(timeRangeFilter));
+            final List<String> indices = indexSelector.getIndexNames(timeRangeFilter);
+            builder.addIndices(indices);
             builder.setParameter("ignore_unavailable", "true"); // ignore unknown index
+
+            LOG.debug("Executing asynchronous query on {}: {}", indices, query);
+        } else {
+            LOG.debug("Executing asynchronous query on all indices: {}", query);
         }
         return executeAsync(builder.build());
     }
