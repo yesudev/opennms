@@ -82,15 +82,15 @@ public class InitializingFlowRepository implements FlowRepository {
         return delegate.getFlowCount(filters);
     }
 
-    @Override
-    public CompletableFuture<Set<Integer>> getExportersWithFlows(int limit, List<Filter> filters) {
-        return delegate.getExportersWithFlows(limit, filters);
-    }
-
-    @Override
-    public CompletableFuture<Set<Integer>> getSnmpInterfaceIdsWithFlows(int limit, List<Filter> filters) {
-        return delegate.getSnmpInterfaceIdsWithFlows(limit, filters);
-    }
+//    @Override
+//    public CompletableFuture<Set<Integer>> getExportersWithFlows() {
+//        return delegate.getExportersWithFlows();
+//    }
+//
+//    @Override
+//    public CompletableFuture<Set<Integer>> getSnmpInterfaceIdsWithFlows() {
+//        return delegate.getSnmpInterfaceIdsWithFlows();
+//    }
 
     @Override
     public CompletableFuture<List<TrafficSummary<String>>> getTopNApplications(int N, boolean includeOther, List<Filter> filters) {

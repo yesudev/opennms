@@ -112,7 +112,7 @@ public class OnmsSnmpInterface extends OnmsEntity implements Serializable {
 
     private Set<OnmsIpInterface> m_ipInterfaces = new HashSet<>();
 
-    private Boolean m_hasFlows;
+    private boolean m_hasFlows;
 
     /**
      * <p>Constructor for OnmsSnmpInterface.</p>
@@ -505,15 +505,14 @@ public class OnmsSnmpInterface extends OnmsEntity implements Serializable {
         return null;
     }
 
-    /**
-     * <p>hasFlows</p>
-     *
-     * @return a {@link java.lang.Boolean} object.
-     */
-    @Column(name="hasFlows")
+    @Column(name="hasFlows", nullable=false)
     @XmlAttribute(name="hasFlows")
-    public Boolean hasFlows() {
+    public boolean getHasFlows() {
         return m_hasFlows;
+    }
+
+    public void setHasFlows(boolean hasFlows) {
+        this.m_hasFlows = hasFlows;
     }
 
     /**
@@ -538,7 +537,7 @@ public class OnmsSnmpInterface extends OnmsEntity implements Serializable {
             .append("nodeId", getNode() == null ? null : getNode().getId())
             .append("lastCapsdPoll", getLastCapsdPoll())
             .append("lastSnmpPoll", getLastSnmpPoll())
-            .append("hasFlows", hasFlows())
+            .append("hasFlows", getHasFlows())
             .toString();
     }
 

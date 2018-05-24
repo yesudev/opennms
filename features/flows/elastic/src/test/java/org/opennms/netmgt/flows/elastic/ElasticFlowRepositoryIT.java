@@ -36,6 +36,9 @@ import java.io.IOException;
 
 import org.junit.Rule;
 import org.junit.Test;
+import org.opennms.netmgt.dao.mock.MockNodeDao;
+import org.opennms.netmgt.dao.mock.MockSnmpInterfaceDao;
+import org.opennms.netmgt.dao.mock.MockTransactionTemplate;
 import org.opennms.netmgt.flows.api.FlowException;
 import org.opennms.netmgt.flows.classification.ClassificationEngine;
 import org.opennms.plugins.elasticsearch.rest.index.IndexStrategy;
@@ -74,7 +77,9 @@ public class ElasticFlowRepositoryIT {
         factory.setHttpClientConfig(new HttpClientConfig.Builder("http://localhost:" + wireMockRule.port()).build());
         try (JestClient client = factory.getObject()) {
             final ElasticFlowRepository elasticFlowRepository = new ElasticFlowRepository(new MetricRegistry(),
-                    client, IndexStrategy.MONTHLY, documentEnricher, classificationEngine, 3, 12000);
+                    client, IndexStrategy.MONTHLY, documentEnricher, classificationEngine,
+                    new MockTransactionTemplate(), new MockNodeDao(), new MockSnmpInterfaceDao(),
+                    3, 12000);
 
             // It does not matter what we persist here, as the response is fixed.
             // We only have to ensure that the list is not empty

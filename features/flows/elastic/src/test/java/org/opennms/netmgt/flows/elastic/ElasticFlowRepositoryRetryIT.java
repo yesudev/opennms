@@ -39,6 +39,9 @@ import org.junit.rules.Timeout;
 import org.opennms.core.test.elastic.ElasticSearchRule;
 import org.opennms.core.test.elastic.ElasticSearchServerConfig;
 import org.opennms.core.test.elastic.ExecutionTime;
+import org.opennms.netmgt.dao.mock.MockNodeDao;
+import org.opennms.netmgt.dao.mock.MockSnmpInterfaceDao;
+import org.opennms.netmgt.dao.mock.MockTransactionTemplate;
 import org.opennms.netmgt.flows.api.FlowException;
 import org.opennms.netmgt.flows.api.FlowRepository;
 import org.opennms.netmgt.flows.classification.ClassificationEngine;
@@ -104,7 +107,7 @@ public class ElasticFlowRepositoryRetryIT {
 
             final FlowRepository elasticFlowRepository = new InitializingFlowRepository(
                     new ElasticFlowRepository(new MetricRegistry(), client, IndexStrategy.MONTHLY, documentEnricher,
-                            classificationEngine, 3, 12000), client);
+                            classificationEngine, new MockTransactionTemplate(), new MockNodeDao(), new MockSnmpInterfaceDao(), 3, 12000), client);
 
             consumer.accept(elasticFlowRepository);
 

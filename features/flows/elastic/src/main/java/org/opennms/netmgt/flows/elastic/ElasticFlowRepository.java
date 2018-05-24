@@ -33,6 +33,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.opennms.netmgt.dao.api.NodeDao;
+import org.opennms.netmgt.dao.api.SnmpInterfaceDao;
 import org.opennms.netmgt.flows.api.Conversation;
 import org.opennms.netmgt.flows.api.ConversationKey;
 import org.opennms.netmgt.flows.api.Directional;
@@ -63,14 +66,18 @@ import org.opennms.plugins.elasticsearch.rest.bulk.BulkWrapper;
 import org.opennms.plugins.elasticsearch.rest.index.IndexStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.transaction.support.TransactionOperations;
 
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.google.common.collect.ImmutableTable;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
+import com.google.common.hash.Funnels;
 
 import io.searchbox.action.Action;
 import io.searchbox.client.JestClient;
@@ -125,19 +132,43 @@ public class ElasticFlowRepository implements FlowRepository {
     private final Timer logPersistingTimer;
 
     /**
+     * Time taken to mark the flows in a log
+     */
+    private final Timer logMarkingTimer;
+
+    /**
      * Number of flows in a log
      */
     private final Histogram flowsPerLog;
 
     private final IndexSelector indexSelector;
 
+    private final TransactionOperations transactionOperations;
+
+    private final NodeDao nodeDao;
+    private final SnmpInterfaceDao snmpInterfaceDao;
+
+//    private final MarkerCache<Integer> markerNodeCache = new MarkerCache<>(Funnels.integerFunnel(), 2<<12); // FIXME: Make size configurable
+//    private final MarkerCache<Integer> markerInterfaceCache = new MarkerCache<>(Funnels.integerFunnel(), 2<<12); // FIXME: Pre-populate cache with values from DB?
+
+    /**
+     * Cache for marking nodes and interfaces as having flows.
+     *
+     * This maps a node ID to a set if nsmpInterface IDs.
+     */
+    private final Map<Integer, Set<Integer>> markerCache = Maps.newHashMap(); // FIXME: Pre-populate cache with values from DB?
+
     public ElasticFlowRepository(MetricRegistry metricRegistry, JestClient jestClient, IndexStrategy indexStrategy,
                                  DocumentEnricher documentEnricher, ClassificationEngine classificationEngine,
+                                 TransactionOperations transactionOperations, NodeDao nodeDao, SnmpInterfaceDao snmpInterfaceDao,
                                  int bulkRetryCount, long maxFlowDurationMs) {
         this.client = Objects.requireNonNull(jestClient);
         this.indexStrategy = Objects.requireNonNull(indexStrategy);
         this.documentEnricher = Objects.requireNonNull(documentEnricher);
         this.classificationEngine = Objects.requireNonNull(classificationEngine);
+        this.transactionOperations = Objects.requireNonNull(transactionOperations);
+        this.nodeDao = Objects.requireNonNull(nodeDao);
+        this.snmpInterfaceDao = Objects.requireNonNull(snmpInterfaceDao);
         this.bulkRetryCount = bulkRetryCount;
         this.indexSelector = new IndexSelector(TYPE, indexStrategy, maxFlowDurationMs);
 
@@ -145,6 +176,7 @@ public class ElasticFlowRepository implements FlowRepository {
         logConversionTimer = metricRegistry.timer("logConversion");
         logEnrichementTimer = metricRegistry.timer("logEnrichment");
         logPersistingTimer = metricRegistry.timer("logPersisting");
+        logMarkingTimer = metricRegistry.timer("logMarking");
         flowsPerLog = metricRegistry.histogram("flowsPerLog");
     }
 
@@ -198,55 +230,52 @@ public class ElasticFlowRepository implements FlowRepository {
             }
             flowsPersistedMeter.mark(flowDocuments.size());
         }
+
+        // Mark nodes and interfaces as having associated flows
+        try (final Timer.Context ctx = logMarkingTimer.time()) {
+            final List<Integer> nodesToUpdate = Lists.newArrayList(flowDocuments.size());
+            final Map<Integer, List<Integer>> interfacesToUpdate = Maps.newHashMap();
+
+            for (final FlowDocument flow : flowDocuments) {
+                if (flow.getNodeExporter() == null) continue;
+                if (flow.getNodeExporter().getNodeId() == null) continue;
+
+                final Integer nodeId = flow.getNodeExporter().getNodeId();
+
+                Set<Integer> ifaceMarkerCache = this.markerCache.get(nodeId);
+                if (ifaceMarkerCache == null) {
+                    this.markerCache.put(nodeId, ifaceMarkerCache = Sets.newHashSet());
+                    nodesToUpdate.add(nodeId);
+                }
+
+                if (flow.getInputSnmp() != null && !ifaceMarkerCache.contains(flow.getInputSnmp())) {
+                    ifaceMarkerCache.add(flow.getInputSnmp());
+                    interfacesToUpdate.computeIfAbsent(nodeId, k -> Lists.newArrayList()).add(flow.getInputSnmp());
+                }
+                if (flow.getOutputSnmp() != null && !ifaceMarkerCache.contains(flow.getOutputSnmp())) {
+                    ifaceMarkerCache.add(flow.getOutputSnmp());
+                    interfacesToUpdate.computeIfAbsent(nodeId, k -> Lists.newArrayList()).add(flow.getOutputSnmp());
+                }
+            }
+
+            if (!nodesToUpdate.isEmpty() || !interfacesToUpdate.isEmpty()) {
+                this.transactionOperations.execute(cb -> {
+                    if (!nodesToUpdate.isEmpty()) {
+                        this.nodeDao.markHavingFlows(nodesToUpdate);
+                    }
+                    for (final Map.Entry<Integer, List<Integer>> e : interfacesToUpdate.entrySet()) {
+                        this.snmpInterfaceDao.markHavingFlows(e.getKey(), e.getValue());
+                    }
+                    return null;
+                });
+            }
+        }
     }
 
     @Override
     public CompletableFuture<Long> getFlowCount(List<Filter> filters) {
         final String query = searchQueryProvider.getFlowCountQuery(filters);
         return searchAsync(query, extractTimeRangeFilter(filters)).thenApply(SearchResult::getTotal);
-    }
-
-    @Override
-    public CompletableFuture<Set<Integer>> getExportersWithFlows(int limit, List<Filter> filters) {
-        final String query = searchQueryProvider.getUniqueNodeExporters(limit, filters);
-        return searchAsync(query, extractTimeRangeFilter(filters))
-                .thenApply(res -> {
-                    final TermsAggregation criterias = res.getAggregations().getTermsAggregation("criterias");
-                    if (criterias == null) {
-                        // No results
-                        return Collections.emptySet();
-                    }
-                    return criterias.getBuckets()
-                            .stream()
-                            .map(e -> Integer.parseInt(e.getKey()))
-                            .collect(Collectors.toSet());
-                });
-    }
-
-    @Override
-    public CompletableFuture<Set<Integer>> getSnmpInterfaceIdsWithFlows(int limit, List<Filter> filters) {
-        final String query = searchQueryProvider.getUniqueSnmpInterfaces(limit, filters);
-        return searchAsync(query, extractTimeRangeFilter(filters))
-                .thenApply(res -> {
-            final Set<Integer> interfaces = Sets.newHashSet();
-            final TermsAggregation inputSnmp = res.getAggregations().getTermsAggregation("input_snmp");
-            if (inputSnmp != null) {
-                inputSnmp.getBuckets()
-                        .stream()
-                        .map(TermsAggregation.Entry::getKey)
-                        .map(Integer::valueOf)
-                        .forEach(interfaces::add);
-            }
-            final TermsAggregation outputSnmp = res.getAggregations().getTermsAggregation("output_snmp");
-            if (outputSnmp != null) {
-                outputSnmp.getBuckets()
-                        .stream()
-                        .map(TermsAggregation.Entry::getKey)
-                        .map(Integer::valueOf)
-                        .forEach(interfaces::add);
-            }
-            return interfaces;
-        });
     }
 
     @Override
@@ -559,6 +588,10 @@ public class ElasticFlowRepository implements FlowRepository {
             }
         });
         return future;
+    }
+
+    private void markNodeWithFlows(final Integer nodeId, final Integer inputInterfaceId, final Integer outputInterfaceId) {
+
     }
 
     /**
