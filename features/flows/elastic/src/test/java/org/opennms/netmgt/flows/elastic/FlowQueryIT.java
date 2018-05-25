@@ -57,6 +57,7 @@ import org.opennms.core.test.elastic.ElasticSearchServerConfig;
 import org.opennms.elasticsearch.plugin.DriftPlugin;
 import org.opennms.netmgt.dao.mock.MockNodeDao;
 import org.opennms.netmgt.dao.mock.MockSnmpInterfaceDao;
+import org.opennms.netmgt.dao.mock.MockTransactionManager;
 import org.opennms.netmgt.dao.mock.MockTransactionTemplate;
 import org.opennms.netmgt.flows.api.Conversation;
 import org.opennms.netmgt.flows.api.Directional;
@@ -105,8 +106,10 @@ public class FlowQueryIT {
         final MetricRegistry metricRegistry = new MetricRegistry();
         final RestClientFactory restClientFactory = new RestClientFactory("http://localhost:" + HTTP_PORT, null, null);
         final JestClient client = restClientFactory.createClient();
+        final MockTransactionTemplate mockTransactionTemplate = new MockTransactionTemplate();
+        mockTransactionTemplate.setTransactionManager(new MockTransactionManager());
         flowRepository = new ElasticFlowRepository(metricRegistry, client, IndexStrategy.MONTHLY, documentEnricher,
-                classificationEngine, new MockTransactionTemplate(), new MockNodeDao(), new MockSnmpInterfaceDao(), 3, 12000);
+                classificationEngine, mockTransactionTemplate, new MockNodeDao(), new MockSnmpInterfaceDao(), 3, 12000);
         final IndexSettings settings = new IndexSettings();
         final ElasticFlowRepositoryInitializer initializer = new ElasticFlowRepositoryInitializer(client, settings);
 
