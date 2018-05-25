@@ -33,7 +33,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,7 +76,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
-import com.google.common.hash.Funnels;
 
 import io.searchbox.action.Action;
 import io.searchbox.client.JestClient;
@@ -147,9 +145,6 @@ public class ElasticFlowRepository implements FlowRepository {
 
     private final NodeDao nodeDao;
     private final SnmpInterfaceDao snmpInterfaceDao;
-
-//    private final MarkerCache<Integer> markerNodeCache = new MarkerCache<>(Funnels.integerFunnel(), 2<<12); // FIXME: Make size configurable
-//    private final MarkerCache<Integer> markerInterfaceCache = new MarkerCache<>(Funnels.integerFunnel(), 2<<12); // FIXME: Pre-populate cache with values from DB?
 
     /**
      * Cache for marking nodes and interfaces as having flows.
