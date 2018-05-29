@@ -228,7 +228,7 @@ public class ElasticFlowRepository implements FlowRepository {
 
         // Mark nodes and interfaces as having associated flows
         try (final Timer.Context ctx = logMarkingTimer.time()) {
-            final List<Integer> nodesToUpdate = Lists.newArrayList(flowDocuments.size());
+            final List<Integer> nodesToUpdate = Lists.newArrayListWithExpectedSize(flowDocuments.size());
             final Map<Integer, List<Integer>> interfacesToUpdate = Maps.newHashMap();
 
             for (final FlowDocument flow : flowDocuments) {
@@ -243,11 +243,15 @@ public class ElasticFlowRepository implements FlowRepository {
                     nodesToUpdate.add(nodeId);
                 }
 
-                if (flow.getInputSnmp() != null && !ifaceMarkerCache.contains(flow.getInputSnmp())) {
+                if (flow.getInputSnmp() != null &&
+                    flow.getInputSnmp() != 0 &&
+                    !ifaceMarkerCache.contains(flow.getInputSnmp())) {
                     ifaceMarkerCache.add(flow.getInputSnmp());
                     interfacesToUpdate.computeIfAbsent(nodeId, k -> Lists.newArrayList()).add(flow.getInputSnmp());
                 }
-                if (flow.getOutputSnmp() != null && !ifaceMarkerCache.contains(flow.getOutputSnmp())) {
+                if (flow.getOutputSnmp() != null &&
+                    flow.getOutputSnmp() != 0 &&
+                    !ifaceMarkerCache.contains(flow.getOutputSnmp())) {
                     ifaceMarkerCache.add(flow.getOutputSnmp());
                     interfacesToUpdate.computeIfAbsent(nodeId, k -> Lists.newArrayList()).add(flow.getOutputSnmp());
                 }
