@@ -59,6 +59,8 @@ import org.opennms.netmgt.flows.classification.persistence.api.Protocols;
 import org.opennms.netmgt.flows.elastic.index.IndexSelector;
 import org.opennms.netmgt.flows.filter.api.Filter;
 import org.opennms.netmgt.flows.filter.api.TimeRangeFilter;
+import org.opennms.netmgt.model.OnmsNode;
+import org.opennms.netmgt.model.OnmsSnmpInterface;
 import org.opennms.plugins.elasticsearch.rest.bulk.BulkException;
 import org.opennms.plugins.elasticsearch.rest.bulk.BulkRequest;
 import org.opennms.plugins.elasticsearch.rest.bulk.BulkWrapper;
@@ -149,9 +151,9 @@ public class ElasticFlowRepository implements FlowRepository {
     /**
      * Cache for marking nodes and interfaces as having flows.
      *
-     * This maps a node ID to a set if nsmpInterface IDs.
+     * This maps a node ID to a set if snmpInterface IDs.
      */
-    private final Map<Integer, Set<Integer>> markerCache = Maps.newHashMap(); // FIXME: Pre-populate cache with values from DB?
+    private final Map<Integer, Set<Integer>> markerCache = Maps.newHashMap();
 
     public ElasticFlowRepository(MetricRegistry metricRegistry, JestClient jestClient, IndexStrategy indexStrategy,
                                  DocumentEnricher documentEnricher, ClassificationEngine classificationEngine,
@@ -173,6 +175,17 @@ public class ElasticFlowRepository implements FlowRepository {
         logPersistingTimer = metricRegistry.timer("logPersisting");
         logMarkingTimer = metricRegistry.timer("logMarking");
         flowsPerLog = metricRegistry.histogram("flowsPerLog");
+
+        // Pre-populate marker cache with values from DB
+        this.transactionOperations.execute(cb -> {
+            for (final OnmsNode node : this.nodeDao.findAllHavingFlows()) {
+                this.markerCache.put(node.getId(),
+                        this.snmpInterfaceDao.findAllHavingFlows(node.getId()).stream()
+                                .map(OnmsSnmpInterface::getIfIndex)
+                                .collect(Collectors.toCollection(Sets::newHashSet)));
+            }
+            return null;
+        });
     }
 
     @Override
