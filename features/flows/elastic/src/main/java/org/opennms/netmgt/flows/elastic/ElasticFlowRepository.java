@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -153,7 +154,7 @@ public class ElasticFlowRepository implements FlowRepository {
      *
      * This maps a node ID to a set if snmpInterface IDs.
      */
-    private final Map<Integer, Set<Integer>> markerCache = Maps.newConcurrentMap();
+    private final ConcurrentMap<Integer, Set<Integer>> markerCache = Maps.newConcurrentMap();
 
     public ElasticFlowRepository(MetricRegistry metricRegistry, JestClient jestClient, IndexStrategy indexStrategy,
                                  DocumentEnricher documentEnricher, ClassificationEngine classificationEngine,
@@ -182,7 +183,7 @@ public class ElasticFlowRepository implements FlowRepository {
                 this.markerCache.put(node.getId(),
                         this.snmpInterfaceDao.findAllHavingFlows(node.getId()).stream()
                                 .map(OnmsSnmpInterface::getIfIndex)
-                                .collect(Collectors.toCollection(Sets::newHashSet)));
+                                .collect(Collectors.toCollection(Sets::newConcurrentHashSet)));
             }
             return null;
         });
@@ -252,7 +253,7 @@ public class ElasticFlowRepository implements FlowRepository {
 
                 Set<Integer> ifaceMarkerCache = this.markerCache.get(nodeId);
                 if (ifaceMarkerCache == null) {
-                    this.markerCache.put(nodeId, ifaceMarkerCache = Sets.newHashSet());
+                    this.markerCache.put(nodeId, ifaceMarkerCache = Sets.newConcurrentHashSet());
                     nodesToUpdate.add(nodeId);
                 }
 
