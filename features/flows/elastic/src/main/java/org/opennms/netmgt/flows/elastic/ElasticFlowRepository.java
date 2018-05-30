@@ -602,10 +602,6 @@ public class ElasticFlowRepository implements FlowRepository {
         return future;
     }
 
-    private void markNodeWithFlows(final Integer nodeId, final Integer inputInterfaceId, final Integer outputInterfaceId) {
-
-    }
-
     /**
      * Rebuilds the table, mapping the row keys using the given function and fills
      * in missing cells with NaN values.
