@@ -153,7 +153,7 @@ public class ElasticFlowRepository implements FlowRepository {
      *
      * This maps a node ID to a set if snmpInterface IDs.
      */
-    private final Map<Integer, Set<Integer>> markerCache = Maps.newHashMap();
+    private final Map<Integer, Set<Integer>> markerCache = Maps.newConcurrentMap();
 
     public ElasticFlowRepository(MetricRegistry metricRegistry, JestClient jestClient, IndexStrategy indexStrategy,
                                  DocumentEnricher documentEnricher, ClassificationEngine classificationEngine,
